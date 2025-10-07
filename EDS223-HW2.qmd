@@ -1,0 +1,266 @@
+---
+title: "Investigating the Legacy of Redlining in Los Angeles"
+author: "Garrett Craig"
+date: "`r Sys.Date()`"
+format:
+  pdf:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    embed-resources: true
+execute:
+  eval: true
+  message: false
+  warning: false
+  echo: true
+editor:
+  markdown:
+    wrap: sentence
+---
+
+# Introduction
+
+Present-day environmental justice may reflect legacies of injustice in the past. During the 1930s, the Home Owners' Loan Corporation (HOLC) rated neighborhoods based on their perceived safety for real estate investment. Their ranking system—A (green), B (blue), C (yellow), D (red)—was used to block access to loans for home ownership, a practice known as "redlining." This analysis examines the legacy of redlining in Los Angeles on current environmental justice conditions and biodiversity observations.
+
+# Setup
+
+## Load Libraries
+
+```{r setup-libraries}
+library(tidyverse)   # data wrangling
+library(sf)          # spatial data handling
+library(here)        # file path management
+library(tmap)        # mapping
+library(ggplot2)     # visualization
+library(gt)          # tables
+library(viridis)     # color palettes
+```
+
+## Load Data
+
+```{r load-data}
+# Load EJScreen data (census block groups)
+ejscreen <- st_read(
+  here("data", "ejscreen", "EJSCREEN_2023_BG_StatePct_with_AS_CNMI_GU_VI.gdb"),
+  quiet = TRUE
+)
+
+# Load HOLC redlining data for Los Angeles
+redlining <- st_read(
+  here("data", "mapping-inequality", "mapping-inequality-los-angeles.json"),
+  quiet = TRUE
+)
+
+# Load bird observation data
+birds <- st_read(
+  here("data", "gbif-birds-LA", "gbif-birds-LA.shp"),
+  quiet = TRUE
+)
+```
+
+## Data Preparation
+
+```{r prepare-data}
+# Filter EJScreen to Los Angeles County
+la_ejscreen <- ejscreen %>%
+  filter(CNTY_NAME == "Los Angeles County")
+
+# Check and align coordinate reference systems
+if (!st_crs(la_ejscreen) == st_crs(redlining)) {
+  warning("CRS mismatch detected. Transforming redlining data to match EJScreen CRS.")
+  redlining <- st_transform(redlining, st_crs(la_ejscreen))
+}
+
+if (!st_crs(birds) == st_crs(redlining)) {
+  warning("CRS mismatch detected. Transforming birds data to match redlining CRS.")
+  birds <- st_transform(birds, st_crs(redlining))
+}
+```
+
+# Part 1: Legacy of Redlining in Environmental Justice
+
+## Historical Redlining Map
+
+```{r map-redlining}
+#| fig-width: 10
+#| fig-height: 8
+
+# Get bounding box of redlining data to focus on mapped areas
+redlining_bbox <- st_bbox(redlining)
+
+# Create LA County boundary
+la_boundary <- st_union(la_ejscreen)
+
+# Create map of historical redlining neighborhoods
+tm_shape(la_boundary, bbox = redlining_bbox) +
+  tm_borders(col = "black", lwd = 2) +
+tm_shape(redlining) +
+  tm_polygons(
+    fill = "grade",
+    fill.scale = tm_scale_categorical(
+      values = c("A" = "darkgreen", "B" = "blue", "C" = "yellow", "D" = "red"),
+      value.na = "transparent"
+    ),
+    fill.legend = tm_legend(title = "HOLC Grade", na.show = FALSE),
+    col = "white",
+    lwd = 0.5
+  ) +
+  tm_basemap(server = "OpenStreetMap") +
+  tm_title("Historical Redlining in Los Angeles (1930s)") +
+  tm_compass(type = "arrow", position = c("left", "top")) +
+  tm_scalebar(position = c("left", "bottom")) +
+  tm_layout(
+    legend.outside = TRUE,
+    legend.outside.position = "right",
+    frame = FALSE
+  )
+```
+
+## Census Block Groups by HOLC Grade
+
+```{r holc-summary}
+# Spatial join to assign HOLC grades to census block groups
+la_holc <- st_join(la_ejscreen, redlining, left = TRUE)
+
+# Calculate percentages by HOLC grade
+holc_summary <- la_holc %>%
+  st_drop_geometry() %>%
+  mutate(grade = ifelse(is.na(grade), "No HOLC Grade", grade)) %>%
+  group_by(grade) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = (count / sum(count)) * 100) %>%
+  arrange(desc(percentage))
+
+# Create formatted table
+holc_summary %>%
+  gt() %>%
+  tab_header(
+    title = "Census Block Groups by HOLC Grade",
+    subtitle = "Los Angeles County"
+  ) %>%
+  cols_label(
+    grade = "HOLC Grade",
+    count = "Count",
+    percentage = "Percentage (%)"
+  ) %>%
+  fmt_number(
+    columns = percentage,
+    decimals = 1
+  )
+```
+
+## Current Environmental Conditions by HOLC Grade
+
+```{r environmental-conditions}
+# Calculate mean values by HOLC grade
+env_summary <- la_holc %>%
+  st_drop_geometry() %>%
+  filter(!is.na(grade)) %>%
+  group_by(grade) %>%
+  summarise(
+    mean_low_income = mean(LOWINCPCT * 100, na.rm = TRUE),
+    mean_pm25 = mean(P_PM25, na.rm = TRUE),
+    mean_life_exp = mean(P_LIFEEXPPCT, na.rm = TRUE)
+  )
+
+# Reshape for plotting
+env_long <- env_summary %>%
+  pivot_longer(
+    cols = starts_with("mean_"),
+    names_to = "variable",
+    values_to = "value"
+  ) %>%
+  mutate(
+    variable = case_when(
+      variable == "mean_low_income" ~ "Low Income (%)",
+      variable == "mean_pm25" ~ "PM2.5 Percentile",
+      variable == "mean_life_exp" ~ "Low Life Expectancy Percentile"
+    )
+  )
+
+# Create visualization
+ggplot(env_long, aes(x = grade, y = value, fill = grade)) +
+  geom_col() +
+  facet_wrap(~variable, scales = "free_y") +
+  scale_fill_manual(
+    values = c("A" = "darkgreen", "B" = "blue", "C" = "yellow", "D" = "red")
+  ) +
+  labs(
+    title = "Environmental and Socioeconomic Conditions by HOLC Grade",
+    subtitle = "Mean values across Los Angeles County census block groups",
+    x = "HOLC Grade",
+    y = "Mean Value",
+    fill = "HOLC Grade"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 14),
+    legend.position = "none"
+  )
+```
+
+## Reflection on Environmental Justice Patterns
+
+The analysis reveals clear and disturbing patterns linking historical redlining to current environmental and socioeconomic conditions in Los Angeles County. Neighborhoods that received the lowest HOLC grade (D, "hazardous" - redlined) exhibit significantly worse conditions across all three metrics examined compared to grade A ("best") neighborhoods.
+
+**Low Income Patterns:** Grade D neighborhoods have nearly three times the percentage of low-income residents (~39%) compared to grade A neighborhoods (~15%). This demonstrates how redlining created lasting economic disparities by systematically denying wealth-building opportunities through homeownership to residents of these areas.
+
+**Air Quality Disparities:** PM2.5 percentile values show a progressive increase from grade A (~70th percentile) to grade D (~80th percentile), indicating that historically redlined neighborhoods experience worse air quality today. This pattern reflects how environmental burdens have been concentrated in communities that were already discriminated against nearly a century ago.
+
+**Health Outcomes:** The low life expectancy percentile follows a similar troubling pattern, with grade D neighborhoods showing the highest values (~80th percentile), meaning these areas have the lowest life expectancies in the county. This metric powerfully illustrates how historical housing discrimination has resulted in tangible health consequences that persist generations later.
+
+These results demonstrate that redlining's impacts extend far beyond housing access—it has shaped the physical environment, economic opportunities, and health outcomes of communities in ways that persist today. The systematic nature of these disparities across all three variables suggests that historical redlining contributed to the concentration of multiple environmental and social stressors in the same communities, creating compounded vulnerability.
+
+# Part 2: Legacy of Redlining in Biodiversity Observations
+
+## Bird Observations by HOLC Grade
+
+```{r bird-observations}
+# Spatial join to assign HOLC grades to bird observations
+birds_holc <- st_join(birds, redlining, left = FALSE)
+
+# Calculate percentage of observations by HOLC grade
+bird_summary <- birds_holc %>%
+  st_drop_geometry() %>%
+  group_by(grade) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = (count / sum(count)) * 100)
+
+# Create visualization
+ggplot(bird_summary, aes(x = grade, y = percentage, fill = grade)) +
+  geom_col() +
+  scale_fill_manual(
+    values = c("A" = "darkgreen", "B" = "blue", "C" = "yellow", "D" = "red"),
+    name = "HOLC Grade"
+  ) +
+  labs(
+    title = "Bird Observations within Redlined Neighborhoods",
+    subtitle = "Percentage of observations by HOLC grade (2021-2023)",
+    x = "HOLC Grade",
+    y = "Percentage of Observations (%)"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 14)
+  )
+```
+
+## Discussion: Comparison with Ellis-Soto et al. 2023
+
+The bird observation data reveals an interesting pattern where grade C neighborhoods have the highest percentage of observations (~35%), followed by grade B (~30%), grade A (~20%), and grade D (~13%). This distribution differs from what we might expect based on Ellis-Soto et al. 2023's findings about biodiversity observations and redlining.
+
+Several factors could explain why our results differ from the paper's findings. First, Ellis-Soto et al. examined not just the quantity of observations but also species richness, observer effort, and temporal trends across multiple cities. Our analysis focuses solely on the count of observations in Los Angeles, which may reflect observer behavior and accessibility rather than actual biodiversity patterns. Grade C and B neighborhoods may have more accessible green spaces or parks that attract both birds and birders, while grade D neighborhoods may have fewer observers despite potentially having birds present.
+
+Second, the paper emphasized that redlined neighborhoods receive less observational effort from citizen scientists, which can create a data gap that doesn't necessarily reflect ecological reality. Our finding that only ~13% of observations occur in grade D neighborhoods could reflect this observer bias rather than an absence of birds. Grade D neighborhoods may have barriers to observation such as safety concerns, lack of amenities for birders, or less community engagement with citizen science platforms like eBird/GBIF.
+
+Third, Ellis-Soto et al. examined changes over time and found that disparities in biodiversity observations have persisted or worsened. Our snapshot from 2021-2023 cannot capture these temporal dynamics or distinguish whether current patterns reflect historical trends or recent changes in urban ecology and observer participation.
+
+Finally, it's important to note that our analysis examines only observations within historically graded neighborhoods, while a significant portion of Los Angeles County was never assigned HOLC grades. The relationship between redlining and biodiversity observations is complex and mediated by factors including current land use, green space distribution, observer demographics and access, and community engagement with citizen science—all of which warrant further investigation to fully understand the legacy of redlining on urban biodiversity documentation.
+
+# Data Citations
+
+**U.S. Environmental Protection Agency.** (2023). *EJScreen: Environmental Justice Screening and Mapping Tool* (Version 2023). Retrieved from <https://www.epa.gov/ejscreen>
+
+**Digital Scholarship Lab, University of Richmond.** *Mapping Inequality: Redlining in New Deal America*. Retrieved from <https://dsl.richmond.edu/panorama/redlining/>
+
+**Global Biodiversity Information Facility (GBIF).** Bird observations for Los Angeles County, 2021-2023.
