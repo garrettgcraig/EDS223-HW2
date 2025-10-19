@@ -1,5 +1,5 @@
 ---
-title: "Investigating the Legacy of Redlining in Los Angeles"
+title: "Investigating the Legacy of Redlining in\\ Los Angeles"
 author: "Garrett Craig"
 date: "`r Sys.Date()`"
 format:
@@ -8,6 +8,15 @@ format:
     toc-depth: 3
     number-sections: true
     embed-resources: true
+    mainfont: "Arial"
+    sansfont: "Arial"
+    monofont: "Courier New"
+    fontsize: 11pt
+    keep-tex: false
+    include-in-header:
+      text: |
+        \usepackage{fvextra}
+        \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,fontsize=\small,commandchars=\\\{\}}
 execute:
   eval: true
   message: false
@@ -137,19 +146,19 @@ holc_summary <- la_holc %>%
 
 # Create formatted table
 holc_summary %>%
-  gt() %>%
-  tab_header(
-    title = "Census Block Groups by HOLC Grade",
-    subtitle = "Los Angeles County"
+  mutate(percentage = round(percentage, 1)) %>%
+  rename(
+    "HOLC Grade" = grade,
+    "Count" = count,
+    "Percentage (%)" = percentage
   ) %>%
-  cols_label(
-    grade = "HOLC Grade",
-    count = "Count",
-    percentage = "Percentage (%)"
+  knitr::kable(
+    booktabs = TRUE,
+    align = c("l", "r", "r")
   ) %>%
-  fmt_number(
-    columns = percentage,
-    decimals = 1
+  kableExtra::kable_styling(
+    latex_options = c("striped", "hold_position"),
+    full_width = FALSE
   )
 ```
 
@@ -257,15 +266,7 @@ ggplot(bird_summary, aes(x = grade, y = percentage, fill = grade)) +
 
 The bird observation data reveals an interesting pattern where grade C neighborhoods have the highest percentage of observations (~35%), followed by grade B (~30%), grade A (~20%), and grade D (~13%). This distribution differs from what we might expect based on Ellis-Soto et al. 2023's findings about biodiversity observations and redlining.
 
-Several factors could explain why our results differ from the paper's findings. First, there is an important methodological difference: Ellis-Soto et al. used log-transformed observation counts in their analysis, while our analysis uses raw counts and percentages. Log transformation is commonly applied to biodiversity count data because observation numbers are often highly skewed, with some areas having very high counts and others having very few. By log-transforming the data, their analysis would have given different weight to the differences between HOLC grades and could reveal different patterns in the relationship between historical redlining and current observation densities. This transformation helps normalize the distribution and makes relationships more linear, which could explain why our raw count analysis shows different patterns.
-
-Second, Ellis-Soto et al. examined not just the quantity of observations but also species richness, observer effort, and temporal trends across multiple cities. Our analysis focuses solely on the count of observations in Los Angeles, which may reflect observer behavior and accessibility rather than actual biodiversity patterns. Grade C and B neighborhoods may have more accessible green spaces or parks that attract both birds and birders, while grade D neighborhoods may have fewer observers despite potentially having birds present.
-
-Second, the paper emphasized that redlined neighborhoods receive less observational effort from citizen scientists, which can create a data gap that doesn't necessarily reflect ecological reality. Our finding that only ~13% of observations occur in grade D neighborhoods could reflect this observer bias rather than an absence of birds. Grade D neighborhoods may have barriers to observation such as safety concerns, lack of amenities for birders, or less community engagement with citizen science platforms like eBird/GBIF.
-
-Third, Ellis-Soto et al. examined changes over time and found that disparities in biodiversity observations have persisted or worsened. Our snapshot from 2021-2023 cannot capture these temporal dynamics or distinguish whether current patterns reflect historical trends or recent changes in urban ecology and observer participation.
-
-Finally, it's important to note that our analysis examines only observations within historically graded neighborhoods, while a significant portion of Los Angeles County was never assigned HOLC grades. The relationship between redlining and biodiversity observations is complex and mediated by factors including current land use, green space distribution, observer demographics and access, and community engagement with citizen science—all of which warrant further investigation to fully understand the legacy of redlining on urban biodiversity documentation.
+The key methodological difference between our analysis and Ellis-Soto et al. is how we quantified bird observations across HOLC grades. Our analysis uses raw observation counts and calculates the percentage of observations within each grade. In contrast, Ellis-Soto et al. calculated **sampling density** by dividing the number of bird observations by the area (in km²) of each HOLC grade, then **log-transformed** these values to meet statistical model assumptions. This approach accounts for the fact that larger neighborhoods would naturally have more observations simply due to their size, and the log transformation normalizes the highly skewed distribution typical of count data. By standardizing observations by area and transforming the data, their analysis better isolates the effect of historical redlining on observation effort independent of neighborhood size, which could explain why our results show different patterns than their findings.
 
 # Data Citations
 
