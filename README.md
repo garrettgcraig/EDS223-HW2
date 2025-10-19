@@ -87,11 +87,3 @@ Bren School of Environmental Science & Management, UC Santa Barbara
 ### Key Literature
 
 - Ellis-Soto, D., Chapman, M., & Locke, D. H. (2023). Historical redlining is associated with increasing geographical disparities in bird biodiversity sampling in the United States. *Nature Human Behaviour*, 7, 1869–1877. https://doi.org/10.1038/s41562-023-01688-5
-
-### Course
-
-This analysis was completed as Homework Assignment 2 for EDS 223: Spatial Analysis, taught by Professor Ruth Oliver at the Bren School of Environmental Science & Management.
-
-## License
-
-This project is part of academic coursework and is intended for educational purposes.
