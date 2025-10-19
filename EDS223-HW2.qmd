@@ -84,6 +84,7 @@ if (!st_crs(birds) == st_crs(redlining)) {
 ```{r map-redlining}
 #| fig-width: 10
 #| fig-height: 8
+#| fig-cap: "Historical redlining in Los Angeles County showing HOLC grades from the 1930s. Grade A (green) represents 'best' neighborhoods, Grade B (blue) 'still desirable', Grade C (yellow) 'definitely declining', and Grade D (red) 'hazardous'."
 
 # Get bounding box of redlining data to focus on mapped areas
 redlining_bbox <- st_bbox(redlining)
@@ -119,6 +120,8 @@ tm_shape(redlining) +
 ## Census Block Groups by HOLC Grade
 
 ```{r holc-summary}
+#| tbl-cap: "Distribution of census block groups across HOLC grades in Los Angeles County. The majority of block groups were not assigned historical HOLC grades."
+
 # Spatial join to assign HOLC grades to census block groups
 la_holc <- st_join(la_ejscreen, redlining, left = TRUE)
 
@@ -152,6 +155,8 @@ holc_summary %>%
 ## Current Environmental Conditions by HOLC Grade
 
 ```{r environmental-conditions}
+#| fig-cap: "Mean environmental and socioeconomic conditions by HOLC grade. Grade D (redlined) neighborhoods show higher percentages of low-income residents, higher PM2.5 exposure, and lower life expectancy compared to Grade A neighborhoods."
+
 # Calculate mean values by HOLC grade
 env_summary <- la_holc %>%
   st_drop_geometry() %>%
@@ -216,6 +221,8 @@ These results demonstrate that redlining's impacts extend far beyond housing acc
 ## Bird Observations by HOLC Grade
 
 ```{r bird-observations}
+#| fig-cap: "Distribution of bird observations across HOLC grades in Los Angeles County (2021-2023). Grade C neighborhoods have the highest percentage of observations, while Grade D (redlined) neighborhoods have the lowest."
+
 # Spatial join to assign HOLC grades to bird observations
 birds_holc <- st_join(birds, redlining, left = FALSE)
 
@@ -249,7 +256,9 @@ ggplot(bird_summary, aes(x = grade, y = percentage, fill = grade)) +
 
 The bird observation data reveals an interesting pattern where grade C neighborhoods have the highest percentage of observations (~35%), followed by grade B (~30%), grade A (~20%), and grade D (~13%). This distribution differs from what we might expect based on Ellis-Soto et al. 2023's findings about biodiversity observations and redlining.
 
-Several factors could explain why our results differ from the paper's findings. First, Ellis-Soto et al. examined not just the quantity of observations but also species richness, observer effort, and temporal trends across multiple cities. Our analysis focuses solely on the count of observations in Los Angeles, which may reflect observer behavior and accessibility rather than actual biodiversity patterns. Grade C and B neighborhoods may have more accessible green spaces or parks that attract both birds and birders, while grade D neighborhoods may have fewer observers despite potentially having birds present.
+Several factors could explain why our results differ from the paper's findings. First, there is an important methodological difference: Ellis-Soto et al. used log-transformed observation counts in their analysis, while our analysis uses raw counts and percentages. Log transformation is commonly applied to biodiversity count data because observation numbers are often highly skewed, with some areas having very high counts and others having very few. By log-transforming the data, their analysis would have given different weight to the differences between HOLC grades and could reveal different patterns in the relationship between historical redlining and current observation densities. This transformation helps normalize the distribution and makes relationships more linear, which could explain why our raw count analysis shows different patterns.
+
+Second, Ellis-Soto et al. examined not just the quantity of observations but also species richness, observer effort, and temporal trends across multiple cities. Our analysis focuses solely on the count of observations in Los Angeles, which may reflect observer behavior and accessibility rather than actual biodiversity patterns. Grade C and B neighborhoods may have more accessible green spaces or parks that attract both birds and birders, while grade D neighborhoods may have fewer observers despite potentially having birds present.
 
 Second, the paper emphasized that redlined neighborhoods receive less observational effort from citizen scientists, which can create a data gap that doesn't necessarily reflect ecological reality. Our finding that only ~13% of observations occur in grade D neighborhoods could reflect this observer bias rather than an absence of birds. Grade D neighborhoods may have barriers to observation such as safety concerns, lack of amenities for birders, or less community engagement with citizen science platforms like eBird/GBIF.
 
