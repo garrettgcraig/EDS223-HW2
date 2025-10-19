@@ -13,6 +13,7 @@ execute:
   message: false
   warning: false
   echo: true
+  cache: true
 editor:
   markdown:
     wrap: sentence
@@ -84,7 +85,7 @@ if (!st_crs(birds) == st_crs(redlining)) {
 ```{r map-redlining}
 #| fig-width: 10
 #| fig-height: 8
-#| fig-cap: "Historical redlining in Los Angeles County showing HOLC grades from the 1930s. Grade A (green) represents 'best' neighborhoods, Grade B (blue) 'still desirable', Grade C (yellow) 'definitely declining', and Grade D (red) 'hazardous'."
+#| fig-cap: "**Historical redlining in Los Angeles County.** HOLC grades from the 1930s are shown: Grade A (green) represents 'best' neighborhoods, Grade B (blue) 'still desirable', Grade C (yellow) 'definitely declining', and Grade D (red) 'hazardous'."
 
 # Get bounding box of redlining data to focus on mapped areas
 redlining_bbox <- st_bbox(redlining)
@@ -120,7 +121,7 @@ tm_shape(redlining) +
 ## Census Block Groups by HOLC Grade
 
 ```{r holc-summary}
-#| tbl-cap: "Distribution of census block groups across HOLC grades in Los Angeles County. The majority of block groups were not assigned historical HOLC grades."
+#| tbl-cap: "**Census block groups by HOLC grade.** Distribution across HOLC grades in Los Angeles County."
 
 # Spatial join to assign HOLC grades to census block groups
 la_holc <- st_join(la_ejscreen, redlining, left = TRUE)
@@ -155,7 +156,7 @@ holc_summary %>%
 ## Current Environmental Conditions by HOLC Grade
 
 ```{r environmental-conditions}
-#| fig-cap: "Mean environmental and socioeconomic conditions by HOLC grade. Grade D (redlined) neighborhoods show higher percentages of low-income residents, higher PM2.5 exposure, and lower life expectancy compared to Grade A neighborhoods."
+#| fig-cap: "**Environmental and socioeconomic conditions by HOLC grade.** Mean values show Grade D (redlined) neighborhoods have higher percentages of low-income residents, higher PM2.5 exposure, and lower life expectancy compared to Grade A neighborhoods."
 
 # Calculate mean values by HOLC grade
 env_summary <- la_holc %>%
@@ -179,7 +180,7 @@ env_long <- env_summary %>%
     variable = case_when(
       variable == "mean_low_income" ~ "Low Income (%)",
       variable == "mean_pm25" ~ "PM2.5 Percentile",
-      variable == "mean_life_exp" ~ "Low Life Expectancy Percentile"
+      variable == "mean_life_exp" ~ "Low Life Exp. Percentile"
     )
   )
 
@@ -191,7 +192,7 @@ ggplot(env_long, aes(x = grade, y = value, fill = grade)) +
     values = c("A" = "darkgreen", "B" = "blue", "C" = "yellow", "D" = "red")
   ) +
   labs(
-    title = "Environmental and Socioeconomic Conditions by HOLC Grade",
+    title = "Env. and Socioeconomic Conditions by HOLC Grade",
     subtitle = "Mean values across Los Angeles County census block groups",
     x = "HOLC Grade",
     y = "Mean Value",
@@ -221,7 +222,7 @@ These results demonstrate that redlining's impacts extend far beyond housing acc
 ## Bird Observations by HOLC Grade
 
 ```{r bird-observations}
-#| fig-cap: "Distribution of bird observations across HOLC grades in Los Angeles County (2021-2023). Grade C neighborhoods have the highest percentage of observations, while Grade D (redlined) neighborhoods have the lowest."
+#| fig-cap: "**Bird observations by HOLC grade.** Distribution of observations across HOLC grades in Los Angeles County (2021-2023). Grade C neighborhoods have the highest percentage of observations, while Grade D (redlined) neighborhoods have the lowest."
 
 # Spatial join to assign HOLC grades to bird observations
 birds_holc <- st_join(birds, redlining, left = FALSE)
