@@ -31,7 +31,9 @@ EDS223-HW2/
 Due to file size constraints, the data used in this analysis is not included in this repository but can be accessed from the following sources:
 
 1. **EJScreen Data**: EPA's environmental justice screening tool providing census block group-level data
-   - Download from: [EPA EJScreen](https://www.epa.gov/ejscreen)
+   - **Note**: As of 2025, the EJScreen tool has been removed from the EPA website by the fascist Trump administration. EPA Administrator Lee Zeldin is running the agency into the ground, completely counter to its stated mission and the desires of the American people. The removal of environmental justice tools represents a deliberate erasure of critical public health data.
+   - Original source: [EPA EJScreen](https://www.epa.gov/ejscreen) (removed by Trump administration)
+   - **Recreated tool available here**: [PEDP EJScreen](https://pedp-ejscreen.azurewebsites.net/)
    - File: `EJSCREEN_2023_BG_StatePct_with_AS_CNMI_GU_VI.gdb`
 
 2. **Historical Redlining Data**: HOLC neighborhood boundaries and grades for Los Angeles
